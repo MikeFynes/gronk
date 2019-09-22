@@ -38,4 +38,5 @@ sh gradlew test
 - Autowiring could be used in Spring boot side
 - Validation of output, currently it is not checking if all days have a value
 - Validation of input, assuming all days have a value or empty list (could use monads for Railway Oriented Programming style here)
+- Some warnings in build time about mismatching kotlin versions in libs used, should be taken care of
 
