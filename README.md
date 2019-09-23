@@ -109,4 +109,5 @@ sh gradlew test
 - Autowiring could be used in Spring boot side
 - Only partial application of Railway orientated programming style (Monads for errors), only few validation steps
 - Some warnings in build time about mismatching kotlin versions in libs used, should be taken care of
-
+- Currently if week starts with a "close" event output will fail with input validation error
+- Cannot handle two consecutive 24 hour opening times (for example open monday, close wednesday will show tuesday as closed)
