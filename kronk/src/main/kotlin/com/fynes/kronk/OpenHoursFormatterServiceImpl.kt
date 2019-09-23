@@ -147,5 +147,9 @@ class OpenHoursFormatterServiceImpl : OpenHoursFormatterService {
     sealed class FormatterError {
         object InputValidationError : FormatterError()
         object StartingWithCloseError : FormatterError()
+
+        override fun toString(): String {
+            return "Error occured: ${this.javaClass.simpleName}"
+        }
     }
 }
