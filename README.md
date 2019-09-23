@@ -1,6 +1,16 @@
 # Gronk - a formatter
 A simple API that takes an input of days mapped to a list of times and returns a formatted string for the week.
 
+## Structure
+- Module approach means `kronk` has no Spring boot dependencies, can easily switch to other framework
+- Using Arrow library to get simpler composition tricks, makes life easier
+### Fronk
+- A simple Kotlin Spring boot application generated using the Spring boot initializer
+- Has a dependency on Kronk
+
+### Kronk
+- A standalone module where all the magic happens
+
 ## Requirements
 - JDK 8 or higher (target is Java 8, but developed with open-JDK 11)
 - Use gradle wrapper to avoid having to install Gradle, if using own install this has been tested with Gradle 5.2.1 
@@ -104,9 +114,7 @@ sh gradlew test
 ```
 
 
-## Structure
-- Module approach means `kronk` has no Spring boot dependencies, can easily switch to other framework
-- Using Arrow library to get simpler composition tricks, makes life easier
+
 
 ## Improvements
 - It doesnt make much sense to format dates/times in a backend service
