@@ -19,7 +19,7 @@ sh gradlew bootRun
 gradlew.bat bootRun
 ```
 
-This will build the `kronk` module, and deploy the `fronk` Spring Boot application locally.
+This will build the `kronk` module, and deploy the `fronk` Spring Boot application locally on `localhost:8080`.
 
 ### Local API testing
 The only API is mapped to `/parseHours` this takes a json map of String to a list of times, for example
