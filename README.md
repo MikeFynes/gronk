@@ -1,7 +1,11 @@
 # Gronk - a formatter
 A simple API that takes an input of days mapped to a list of times and returns a formatted string for the week.
 
-## Setup
+## Requirements
+- JDK 8 or higher (target is Java 8, but developed with open-JDK 11)
+- Use gradle wrapper to avoid having to install Gradle, if using own install this has been tested with Gradle 5.2.1 
+
+## Run
 
 - Run the below command to build and run locally
 
