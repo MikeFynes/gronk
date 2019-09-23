@@ -1,8 +1,14 @@
 package com.fynes.kronk
 
+import arrow.core.Either
+import arrow.core.Left
+import arrow.core.Right
 import arrow.core.compose
 import com.fynes.kronk.model.Time
-import java.time.*
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
@@ -11,29 +17,63 @@ import java.util.concurrent.TimeUnit
 class OpenHoursFormatterServiceImpl : OpenHoursFormatterService {
     private val chunkTwo = 2
 
-    override val parseOpeningHours: (Map<String, List<Time>>) -> String = {
-        val flatten = combineOpeningHourStrings compose mapToOpeningHoursOutput compose mapDaysToStringOutput compose mapOpeningToClosingTimes compose flattenDays compose mapInputKeysToDays
+    override val parseOpeningHours: (Map<String, List<Time>>) -> Either<FormatterError, String> = {
+        val flatten =
+            combineOpeningHourStrings compose
+                    mapToOpeningHoursOutput compose
+                    mapDaysToStringOutput compose
+                    mapOpeningToClosingTimes compose
+                    flattenDays compose
+                    mapInputKeysToDays
 
         flatten(it)
     }
 
-    val mapInputKeysToDays: (Map<String, List<Time>>) -> Map<DayOfWeek, List<Time>> = { it ->
-        it.mapKeys { DayOfWeek.valueOf(it.key.toUpperCase()) }
-    }
+    val mapInputKeysToDays: (Map<String, List<Time>>) -> Either<FormatterError, Map<DayOfWeek, List<Time>>> = { it ->
 
-    val flattenDays: (Map<DayOfWeek, List<Time>>) -> List<Pair<DayOfWeek, Time>> = { it ->
-        it.flatMap { entry -> entry.value.map { time -> entry.key to time } }
-    }
-
-    val mapOpeningToClosingTimes: (List<Pair<DayOfWeek, Time>>) -> List<Pair<DayOfWeek, Pair<Time, Time>>> = { pairsOfDaysOfWeekAndTime ->
-        pairsOfDaysOfWeekAndTime.chunked(chunkTwo).map {
-            it.first().first to (it.first().second to it.last().second)
+        if (it.size < DayOfWeek.values().size) {
+            Left(FormatterError.InputValidationError)
+        } else {
+            Right(it.mapKeys { DayOfWeek.valueOf(it.key.toUpperCase()) })
         }
     }
 
-    val mapDaysToStringOutput: (List<Pair<DayOfWeek, Pair<Time, Time>>>) -> List<Pair<DayOfWeek, String>> = {
-        it.map { entry -> entry.first to mapTimesToString(entry.second) }
-    }
+    val flattenDays: (Either<FormatterError, Map<DayOfWeek, List<Time>>>) -> Either<FormatterError, List<Pair<DayOfWeek, Time>>> =
+        { it ->
+            when (it) {
+                is Either.Left -> Left(it.a)
+                is Either.Right -> {
+                    Right(it.b.flatMap { entry -> entry.value.map { time -> entry.key to time } })
+                }
+            }
+        }
+
+    val mapOpeningToClosingTimes: (Either<FormatterError, List<Pair<DayOfWeek, Time>>>) -> Either<FormatterError, List<Pair<DayOfWeek, Pair<Time, Time>>>> =
+        { it ->
+            when (it) {
+                is Either.Left -> Left(it.a)
+                is Either.Right -> {
+                    val pairsOfDaysOfWeekAndTime = it.b
+                    val chunkedPairs = pairsOfDaysOfWeekAndTime.chunked(chunkTwo).map {
+                        it.first().first to (it.first().second to it.last().second)
+                    }
+
+                    if (chunkedPairs.first().second.first.type == "close") {
+                        Left(FormatterError.StartingWithCloseError)
+                    } else {
+                        Right(chunkedPairs)
+                    }
+                }
+            }
+        }
+
+    val mapDaysToStringOutput: (Either<FormatterError, List<Pair<DayOfWeek, Pair<Time, Time>>>>) -> Either<FormatterError, List<Pair<DayOfWeek, String>>> =
+        { it ->
+            when (it) {
+                is Either.Left -> Left(it.a)
+                is Either.Right -> Right(it.b.map { entry -> entry.first to mapTimesToString(entry.second) })
+            }
+        }
 
     val parseTimeOfDay: (Int) -> String = { timeInSeconds ->
         val time = parseToDate(TimeUnit.SECONDS.toMillis(timeInSeconds.toLong()))
@@ -63,32 +103,49 @@ class OpenHoursFormatterServiceImpl : OpenHoursFormatterService {
         "${parseTimeOfDay(it.first.value)} - ${parseTimeOfDay(it.second.value)}"
     }
 
-    val mapToOpeningHoursOutput: (List<Pair<DayOfWeek, String>>) -> List<String> = { openingHoursList ->
-        openingHoursList.let {
-            DayOfWeek.values().map { dayOfWeek ->
+    val mapToOpeningHoursOutput: (Either<FormatterError, List<Pair<DayOfWeek, String>>>) -> Either<FormatterError, List<String>> =
+        { it ->
+            when (it) {
+                is Either.Left -> Left(it.a)
+                is Either.Right -> {
+                    val openingHoursList = it.b
 
-                var outputString = "${dayOfWeek.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())}: "
+                    Right(openingHoursList.let {
+                        DayOfWeek.values().map { dayOfWeek ->
 
-                val openingHoursForDay = openingHoursList.filter { it.first == dayOfWeek }
+                            var outputString =
+                                "${dayOfWeek.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())}: "
 
-                if (openingHoursForDay.size > 0) {
-                    openingHoursForDay.forEach { pair ->
-                        outputString = outputString.plus(pair.second)
-                        outputString = outputString.plus(",")
-                        outputString = outputString.plus(" ")
-                    }
-                } else {
-                    outputString = outputString.plus("Closed")
+                            val openingHoursForDay = openingHoursList.filter { it.first == dayOfWeek }
+
+                            if (openingHoursForDay.size > 0) {
+                                openingHoursForDay.forEach { pair ->
+                                    outputString = outputString.plus(pair.second)
+                                    outputString = outputString.plus(",")
+                                    outputString = outputString.plus(" ")
+                                }
+                            } else {
+                                outputString = outputString.plus("Closed")
+                            }
+
+                            outputString.trim().trimEnd(',').plus("\n")
+                        }
+                    })
                 }
-
-                outputString.trim().trimEnd(',').plus("\n")
             }
+        }
+
+    val combineOpeningHourStrings: (Either<FormatterError, List<String>>) -> Either<FormatterError, String> = {
+        when (it) {
+            is Either.Left -> Left(it.a)
+            is Either.Right -> Right(it.b.reduce { previous, current ->
+                previous.plus(current)
+            })
         }
     }
 
-    val combineOpeningHourStrings: (List<String>) -> String = {
-        it.reduce { previous, current ->
-            previous.plus(current)
-        }
+    sealed class FormatterError {
+        object InputValidationError : FormatterError()
+        object StartingWithCloseError : FormatterError()
     }
 }
