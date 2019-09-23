@@ -1,5 +1,6 @@
 package com.fynes.fronk
 
+import arrow.core.Either
 import com.fynes.kronk.OpenHoursFormatterService
 import com.fynes.kronk.OpenHoursFormatterServiceImpl
 import com.fynes.kronk.model.Time
@@ -14,6 +15,10 @@ class KronkController {
 
     @PostMapping("/parseHours")
     fun parseOpeningHours(@RequestBody openingHoursInput: Map<String, List<Time>>): String {
-        return openHoursFormatterService.parseOpeningHours(openingHoursInput)
+        val output = openHoursFormatterService.parseOpeningHours(openingHoursInput)
+        return when (output) {
+            is Either.Left -> output.a.toString()
+            is Either.Right -> output.b
+        }
     }
 }

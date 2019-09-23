@@ -13,6 +13,8 @@ repositories {
     mavenCentral()
 }
 
+var arrow_version = "0.9.0"
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -21,6 +23,13 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 
     implementation(project(":kronk"))
+    implementation("io.arrow-kt:arrow-core-data:$arrow_version")
+    implementation("io.arrow-kt:arrow-core-extensions:$arrow_version")
+    implementation("io.arrow-kt:arrow-syntax:$arrow_version")
+    implementation("io.arrow-kt:arrow-typeclasses:$arrow_version")
+    implementation("io.arrow-kt:arrow-extras-data:$arrow_version")
+    implementation("io.arrow-kt:arrow-extras-extensions:$arrow_version")
+    implementation("io.arrow-kt:arrow-meta:$arrow_version")
 }
 
 tasks.withType<KotlinCompile> {
